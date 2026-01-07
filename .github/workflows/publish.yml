@@ -11,14 +11,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # --- NEW STEP: Create lowercase repo name ---
+      - name: Prepare Repository Name
+        run: |
+          # Converts "ghcr.io/Eetezadi/libsql-server" to lowercase
+          echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Extract libSQL Version
         id: get_version
         run: |
-          # Pull the base image and extract the version string
-          # sqld --version output looks like: sqld 0.24.33
           VERSION=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version | awk '{print $2}')
           echo "LIBSQL_VER=$VERSION" >> $GITHUB_OUTPUT
-          echo "Found version: $VERSION"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -32,7 +35,7 @@ jobs:
         with:
           context: .
           push: true
-          # We tag with 'latest' AND the specific version found
+          # Use the new lowercase variable ${{ env.REPO_LC }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/libsql-server:latest
-            ghcr.io/${{ github.repository_owner }}/libsql-server:${{ steps.get_version.outputs.LIBSQL_VER }}
+            ghcr.io/${{ env.REPO_LC }}:latest
+            ghcr.io/${{ env.REPO_LC }}:${{ steps.get_version.outputs.LIBSQL_VER }}
