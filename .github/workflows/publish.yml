@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Required for pushing to GHCR
     permissions:
       contents: read
       packages: write
@@ -16,33 +15,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Prepare Repository Name
-        # Converts "ghcr.io/Eetezadi/libsql-server" to lowercase
+      - name: Prepare Variables
+        # Ensures the repository name is lowercase for GHCR compatibility
         run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
-      - name: Extract libSQL Version
+      - name: Extract Version
         id: get_version
         run: |
-          echo "--- DEBUG: Running sqld --version ---"
-          # 1. Capture the raw output
-          FULL_OUTPUT=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version)
-          echo "Raw output from container: '$FULL_OUTPUT'"
-
-          # 2. Use a strict Regex to grab ONLY the numbers and dots
-          # This ignore the word 'sqld' entirely by looking for the pattern X.Y.Z
-          CLEAN_VER=$(echo "$FULL_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
-          
-          echo "Regex result (CLEAN_VER): '$CLEAN_VER'"
-
-          # 3. Final safety check
-          if [ -z "$CLEAN_VER" ]; then
-            echo "⚠️ WARNING: Regex failed to find a version number. Defaulting to 'latest-build'."
-            CLEAN_VER="latest-build"
-          fi
-
-          echo "LIBSQL_VER=$CLEAN_VER" >> $GITHUB_OUTPUT
-          echo "Final Version Tag to be used: $CLEAN_VER"
-          echo "---------------------------------------"
+          # Grabs the X.Y.Z version number from the upstream image
+          VER=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+          echo "LIBSQL_VER=${VER:-latest-build}" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -56,7 +38,21 @@ jobs:
         with:
           context: .
           push: true
-          # Tags the image with 'latest' and the specific libSQL version
           tags: |
             ghcr.io/${{ env.REPO_LC }}:latest
             ghcr.io/${{ env.REPO_LC }}:${{ steps.get_version.outputs.LIBSQL_VER }}
+
+  cleanup:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old image versions
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package: ${{ github.event.repository.name }}
+          # Keep 'latest' and the 9 most recent versioned tags
+          exclude-tags: latest
+          keep-n-tagged: 9
