@@ -24,8 +24,8 @@ Ensure these are configured in your Railway project settings:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SQLD_USER` | `root` | The username for database access (defaults to root). |
-| `SQLD_PASSWORD` | *Required* | Your database password. Use a long, random string. |
+| `DB_USER` | `root` | The username for database access (defaults to root). |
+| `DB_PASSWORD` | *Required* | Your database password. Use a long, random string. |
 | `PORT` | `8080` | The internal port the server listens on. |
 
 ### 2. Connecting to your Database
