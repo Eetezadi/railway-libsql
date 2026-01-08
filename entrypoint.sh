@@ -14,18 +14,18 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     openssl genpkey -algorithm Ed25519 -out "$KEY_DIR/libsql.pem"
     
     # 2. Extract Public Key (URL-safe Base64)
-    # We take the raw 32-byte public key from the DER output
+    # We extract the raw 32 bytes from the DER output
     PUB_KEY=$(openssl pkey -in "$KEY_DIR/libsql.pem" -pubout -outform DER | tail -c 32 | base64 | tr '+/' '-_' | tr -d '=')
     echo "$PUB_KEY" > "$KEY_DIR/libsql.pub"
     
     # 3. Generate JWT
-    # Header & Payload are static for "read-write" access
     HEADER="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9"
     PAYLOAD="eyJhIjoicncifQ" 
     
-    # FIXED SIGNING COMMAND: 
-    # Added '-rawin' and ensured input is passed correctly for Ed25519
-    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl pkeyutl -sign -inkey "$KEY_DIR/libsql.pem" -rawin | base64 | tr '+/' '-_' | tr -d '=')
+    # 4. SIGNING (Fixed version using dgst)
+    # Ed25519 in dgst doesn't need a digest name (like -sha256) specified.
+    # It automatically handles the "PureEdDSA" logic.
+    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl dgst -sign "$KEY_DIR/libsql.pem" | base64 | tr '+/' '-_' | tr -d '=')
     
     JWT="$HEADER.$PAYLOAD.$SIG"
 
@@ -39,6 +39,9 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
 fi
 
 export SQLD_AUTH_JWT_KEY=$(cat "$KEY_DIR/libsql.pub")
+
+# Ensure the directory belongs to sqld user before starting
 chown -R sqld:sqld "$DATA_DIR"
 
+# Start the server
 exec gosu sqld /bin/sqld --db-path "$DATA_DIR/data.sqld" "$@"
