@@ -59,9 +59,8 @@ export function createDbClient(url: string, username: string, password: string) 
   });
 
   return drizzle(client, { schema });
-}```
-
-
+}
+```
 ##### Usage in App
 ```typescript
 import { createDbClient } from './db';
