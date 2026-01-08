@@ -17,8 +17,9 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     # 2. Generate Public Key
     openssl pkey -in "$KEY_DIR/libsql.pem" -pubout -out "$KEY_DIR/libsql_full.pub"
     
-    # 3. Process to Raw URL-Safe Base64 (NO PREFIX)
-    RAW_PUB=$(cat "$KEY_DIR/libsql_full.pub" | grep -v "PUBLIC KEY" | tr -d '\n' | tr '+/' '-_')
+    # 3. Process to Raw URL-Safe Base64 AND REMOVE PADDING
+    # We strip the header, swap chars to URL-safe, and delete '='
+    RAW_PUB=$(cat "$KEY_DIR/libsql_full.pub" | grep -v "PUBLIC KEY" | tr -d '\n' | tr '+/' '-_' | tr -d '=')
     
     # 4. Save Raw Key for the Server
     echo "$RAW_PUB" > "$KEY_DIR/libsql.pub"
@@ -35,7 +36,7 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     echo "**************************************************"
     echo ""
     echo "1. RAILWAY VARIABLE (SQLD_AUTH_JWT_KEY):"
-    echo "$RAW_PUB"
+    echo "es256:$RAW_PUB"
     echo ""
     echo "2. APPLICATION VARIABLE (TURSO_AUTH_TOKEN):"
     echo "$JWT"
@@ -43,10 +44,18 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     echo "**************************************************"
 fi
 
-# Load the key from the file to ensure consistency
-export SQLD_AUTH_JWT_KEY=$(cat "$KEY_DIR/libsql.pub")
+# Determine which key to use
+# If the user has set the variable in Railway (and it's not "temp"), use it.
+# Otherwise, load from file to prevent crashes during bootstrap.
+if [[ -z "$SQLD_AUTH_JWT_KEY" || "$SQLD_AUTH_JWT_KEY" == "temp" ]]; then
+    if [ -f "$KEY_DIR/libsql.pub" ]; then
+        # Load from file and prepend prefix
+        RAW_KEY=$(cat "$KEY_DIR/libsql.pub")
+        export SQLD_AUTH_JWT_KEY="es256:$RAW_KEY"
+    fi
+fi
+
 chown -R sqld:sqld "$DATA_DIR"
 
 echo "Starting libSQL..."
-# We execute the server. If it crashes, we sleep for 60s so you can read logs.
 exec gosu sqld /bin/sqld --db-path "$DATA_DIR/data.sqld" "$@" || (echo "Crashed. Sleeping..." && sleep 60)
