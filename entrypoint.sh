@@ -1,33 +1,32 @@
 #!/bin/bash
 set -e
 
-# Configuration
 DATA_DIR="/var/lib/sqld"
 KEY_DIR="$DATA_DIR/keys"
 export SQLD_HTTP_LISTEN_ADDR="0.0.0.0:${PORT:-8080}"
 
-# Ensure directories exist
 mkdir -p "$KEY_DIR"
 
-# 1. KEY BOOTSTRAPPING
-# Only generate if the private key doesn't exist in the volume
 if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     echo "--- INITIALIZING SECURITY KEYS ---"
     
-    # Generate Ed25519 Private Key
+    # 1. Generate Private Key
     openssl genpkey -algorithm Ed25519 -out "$KEY_DIR/libsql.pem"
     
-    # Extract Public Key (formatted for libSQL)
+    # 2. Extract Public Key (URL-safe Base64)
+    # We take the raw 32-byte public key from the DER output
     PUB_KEY=$(openssl pkey -in "$KEY_DIR/libsql.pem" -pubout -outform DER | tail -c 32 | base64 | tr '+/' '-_' | tr -d '=')
     echo "$PUB_KEY" > "$KEY_DIR/libsql.pub"
     
-    # 2. GENERATE THE JWT (The "Auth Token")
-    # Header & Payload (a:rw = access: read-write)
+    # 3. Generate JWT
+    # Header & Payload are static for "read-write" access
     HEADER="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9"
     PAYLOAD="eyJhIjoicncifQ" 
     
-    # Sign the token
-    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl pkeyutl -sign -inkey "$KEY_DIR/libsql.pem" | base64 | tr '+/' '-_' | tr -d '=')
+    # FIXED SIGNING COMMAND: 
+    # Added '-rawin' and ensured input is passed correctly for Ed25519
+    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl pkeyutl -sign -inkey "$KEY_DIR/libsql.pem" -rawin | base64 | tr '+/' '-_' | tr -d '=')
+    
     JWT="$HEADER.$PAYLOAD.$SIG"
 
     echo "**************************************************"
@@ -39,13 +38,7 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     echo "**************************************************"
 fi
 
-# 3. SET SERVER VARS
-# Set the server to require the public key we just confirmed exists
 export SQLD_AUTH_JWT_KEY=$(cat "$KEY_DIR/libsql.pub")
-
-# Ensure data directory is owned by the sqld user
 chown -R sqld:sqld "$DATA_DIR"
 
-# 4. START SERVER
-# We remove Basic Auth logic in favor of JWT
 exec gosu sqld /bin/sqld --db-path "$DATA_DIR/data.sqld" "$@"
