@@ -5,6 +5,7 @@ USER root
 # Install only what is strictly necessary and clean up cache in one layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gosu ca-certificates && \
+    apt-get install -y openssl && \
     rm -rf /var/lib/apt/lists/*
 
 # Pre-create data directory with correct permissions
