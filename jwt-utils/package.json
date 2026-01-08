@@ -1,0 +1,16 @@
+{
+  "name": "libsql-jwt-utils",
+  "version": "1.0.0",
+  "description": "JWT utilities for libSQL authentication",
+  "type": "module",
+  "scripts": {
+    "generate-keys": "node generate-jwt-keys.js",
+    "generate-token": "node generate-jwt-token.js",
+    "test": "node test-jwt-auth.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

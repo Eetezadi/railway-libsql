@@ -1,0 +1,25 @@
+{
+  "name": "drizzle-libsql-jwt-example",
+  "version": "1.0.0",
+  "description": "Example of using Drizzle ORM with libSQL JWT authentication",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "drizzle-orm": "^0.35.3",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.27.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

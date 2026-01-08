@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  libsql-jwt:
+    build:
+      context: .
+      dockerfile: Dockerfile.jwt
+    container_name: libsql-jwt-server
+    ports:
+      - "8080:8080"
+    environment:
+      # JWT Public Key (base64 encoded)
+      # Generate using: cd jwt-utils && node generate-jwt-keys.js
+      # Then copy the base64 value from .env.jwt.example
+      SQLD_AUTH_JWT_KEY: ${SQLD_AUTH_JWT_KEY}
+
+      # Optional: Enable WAL mode for better performance
+      ENABLE_WAL: "true"
+
+      # Optional: Set max database size
+      MAX_DB_SIZE: "10GB"
+
+      # Port configuration
+      PORT: 8080
+    volumes:
+      # Persist database data
+      - libsql-data:/var/lib/sqld
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Development container for testing
+  dev-test:
+    image: node:20-alpine
+    container_name: libsql-jwt-dev
+    working_dir: /app
+    volumes:
+      - ./drizzle-jwt-example:/app
+      - ./jwt-utils:/jwt-utils
+    environment:
+      DATABASE_URL: http://libsql-jwt:8080
+      DATABASE_AUTH_TOKEN: ${DATABASE_AUTH_TOKEN}
+    depends_on:
+      - libsql-jwt
+    command: sh -c "npm install && npm run db:push && npm start"
+    profiles:
+      - dev
+
+volumes:
+  libsql-data:
+    driver: local
