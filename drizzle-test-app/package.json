@@ -1,0 +1,34 @@
+{
+  "name": "drizzle-libsql-test-app",
+  "version": "1.0.0",
+  "description": "Simple Drizzle ORM test application for libSQL database",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "keywords": [
+    "drizzle",
+    "libsql",
+    "turso",
+    "database",
+    "test"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "drizzle-orm": "^0.35.3",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.27.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
