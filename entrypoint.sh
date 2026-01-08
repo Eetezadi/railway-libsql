@@ -8,24 +8,28 @@ export SQLD_HTTP_LISTEN_ADDR="0.0.0.0:${PORT:-8080}"
 mkdir -p "$KEY_DIR"
 
 if [ ! -f "$KEY_DIR/libsql.pem" ]; then
-    echo "--- INITIALIZING SECURITY KEYS ---"
+    echo "--- INITIALIZING SECURITY KEYS (ES256) ---"
     
-    # 1. Generate Private Key
-    openssl genpkey -algorithm Ed25519 -out "$KEY_DIR/libsql.pem"
+    # 1. Generate Private Key (ECDSA P-256)
+    # This works on ALL OpenSSL versions
+    openssl ecparam -name prime256v1 -genkey -noout -out "$KEY_DIR/libsql.pem"
     
-    # 2. Extract Public Key (URL-safe Base64)
-    # We extract the raw 32 bytes from the DER output
-    PUB_KEY=$(openssl pkey -in "$KEY_DIR/libsql.pem" -pubout -outform DER | tail -c 32 | base64 | tr '+/' '-_' | tr -d '=')
+    # 2. Extract Public Key (SubjectPublicKeyInfo format)
+    # We strip the "PEM headers" to get the raw key data for the log
+    openssl pkey -in "$KEY_DIR/libsql.pem" -pubout -out "$KEY_DIR/libsql_full.pub"
+    
+    # Formatted specifically for passing to sqld (remove headers/newlines)
+    PUB_KEY=$(cat "$KEY_DIR/libsql_full.pub" | grep -v "PUBLIC KEY" | tr -d '\n')
     echo "$PUB_KEY" > "$KEY_DIR/libsql.pub"
     
     # 3. Generate JWT
-    HEADER="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9"
+    # Header: {"alg":"ES256","typ":"JWT"} -> eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9
+    HEADER="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9"
     PAYLOAD="eyJhIjoicncifQ" 
     
-    # 4. SIGNING (Fixed version using dgst)
-    # Ed25519 in dgst doesn't need a digest name (like -sha256) specified.
-    # It automatically handles the "PureEdDSA" logic.
-    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl dgst -sign "$KEY_DIR/libsql.pem" | base64 | tr '+/' '-_' | tr -d '=')
+    # 4. SIGNING (Standard SHA256)
+    # This is the "bulletproof" method that works everywhere
+    SIG=$(echo -n "$HEADER.$PAYLOAD" | openssl dgst -sha256 -sign "$KEY_DIR/libsql.pem" | base64 | tr '+/' '-_' | tr -d '=')
     
     JWT="$HEADER.$PAYLOAD.$SIG"
 
@@ -38,10 +42,10 @@ if [ ! -f "$KEY_DIR/libsql.pem" ]; then
     echo "**************************************************"
 fi
 
+# Set the key for the server
 export SQLD_AUTH_JWT_KEY=$(cat "$KEY_DIR/libsql.pub")
 
-# Ensure the directory belongs to sqld user before starting
 chown -R sqld:sqld "$DATA_DIR"
 
-# Start the server
+# Start Server
 exec gosu sqld /bin/sqld --db-path "$DATA_DIR/data.sqld" "$@"
