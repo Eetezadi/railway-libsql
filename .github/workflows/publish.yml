@@ -16,15 +16,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare Variables
-        # Ensures the repository name is lowercase for GHCR compatibility
         run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
-      - name: Extract Version
+      - name: Extract Version from Dockerfile
         id: get_version
         run: |
-          # Grabs the X.Y.Z version number from the upstream image
-          VER=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
-          echo "LIBSQL_VER=${VER:-latest-build}" >> $GITHUB_OUTPUT
+          # Grabs the version after the colon in the FROM line (e.g., v0.24.33)
+          # We use 'tr -d' to clean any potential carriage returns
+          VER=$(grep -m 1 "FROM" Dockerfile | cut -d ':' -f 2 | tr -d '\r\n')
+          echo "LIBSQL_VER=${VER:-latest}" >> $GITHUB_OUTPUT
+          echo "Found pinned version in Dockerfile: $VER"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -53,6 +54,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           package: ${{ github.event.repository.name }}
-          # Keep 'latest' and the 9 most recent versioned tags
           exclude-tags: latest
           keep-n-tagged: 9
