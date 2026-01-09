@@ -25,15 +25,15 @@ func main() {
 
 	signedToken, _ := token.SignedString(priv)
 
-	// Output ONLY the public pieces
-	fmt.Println("---------------------------------------------------------")
-	fmt.Println("🔒 DATABASE SETUP (Copy to Railway Variable)")
-	fmt.Println("Variable Name: SQLD_AUTH_JWT_KEY")
-	fmt.Println("Value:", base64.RawURLEncoding.EncodeToString(pub))
-	fmt.Println("---------------------------------------------------------")
-	fmt.Println("🎟️ APP CREDENTIAL (Copy to Drizzle .env)")
-	fmt.Println("DATABASE_AUTH_TOKEN=" + signedToken)
-	fmt.Println("---------------------------------------------------------")
-	fmt.Println("⚠️ Note: The Private Key was destroyed after signing.")
-	fmt.Println("To rotate keys, simply delete the Railway variable and redeploy.")
+	fmt.Print(`
+---------------------------------------------------------
+RAILWAY VARIABLE (Copy to Railway Service Variables)
+SQLD_AUTH_JWT_KEY=` + base64.RawURLEncoding.EncodeToString(pub) + `
+---------------------------------------------------------
+DRIZZLE ENV (Copy to Client .env file)
+DATABASE_AUTH_TOKEN=` + signedToken + `
+---------------------------------------------------------
+Note: The private key was destroyed after signing.
+To rotate keys, delete the Railway variable and redeploy.
+`)
 }
