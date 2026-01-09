@@ -5,18 +5,18 @@ RUN go mod init token-gen && \
     go get github.com/golang-jwt/jwt/v5 && \
     go build -o /token-gen main.go
 
-# Final Database Stage
 FROM ghcr.io/tursodatabase/libsql-server:v0.24.33
+
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gosu ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/lib/sqld && chown sqld:sqld /var/lib/sqld
 
 COPY --from=token-compiler /token-gen /usr/local/bin/token-gen
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/token-gen
 
-# Set db path for Railway volume mount
-ENV SQLD_DB_PATH=/var/lib/sqld/data.sqld
-
-EXPOSE 8080
 STOPSIGNAL SIGINT
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/bin/sqld"]
+ENTRYPOINT ["entrypoint.sh"]
