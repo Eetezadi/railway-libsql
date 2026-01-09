@@ -11,7 +11,7 @@ gosu sqld /bin/sqld --db-path /var/lib/sqld/data.sqld "$@" 2>&1 | grep -v "Welco
 SQLD_PID=$!
 
 # Wait for sqld to start up, then show credentials
-sleep 5
+sleep 1
 if [ -z "$SQLD_AUTH_JWT_KEY" ]; then
     echo ""
     echo ""
