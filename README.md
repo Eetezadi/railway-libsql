@@ -1,6 +1,6 @@
 # libSQL / Turso-compatible Server for Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/kU5TW-?referralCode=wOLOAa&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/turso-libsql-database-basic-auth?referralCode=wOLOAa&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 Host your own **libSQL / Turso (sqld)** instance on Railway. This template provides a Turso-compatible database server that works with the `@libsql/client` SDK and Drizzle ORM, giving you a dedicated SQLite-compatible database with no row limits.
 
