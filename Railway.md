@@ -18,6 +18,15 @@ Hosting libSQL on Railway involves deploying a containerized `sqld` server paire
 
 - **Railway Volume**: Required to be mounted at `/var/lib/sqld` to persist your SQLite database files.
 - **Environment Variables**: The system automatically generates JWT credentials on first deployment. You'll need to copy the `SQLD_AUTH_JWT_KEY` from the deployment logs into your Railway service variables.
+- **Bottomless Replication (Optional)**: The template includes automatic backup and restore via S3-compatible storage, pre-configured through Railway.
+
+### Bottomless Backup & Restore
+
+The template automatically configures bottomless replication for backup and restore on Railway. The S3 bucket credentials are pre-configured in the template.
+
+**Automatic Restore**: When the Railway Volume is wiped or empty, the database automatically restores from the latest backup on startup.
+
+**Disabling Backup/Restore**: To disable bottomless replication, set `SQLD_ENABLE_BOTTOMLESS_REPLICATION=false` in your Railway service variables.
 
 ### Deployment Dependencies
 
@@ -82,6 +91,7 @@ To generate new credentials:
 1. Delete or clear the `SQLD_AUTH_JWT_KEY` variable in Railway
 2. Trigger a new deployment
 3. Repeat Steps 1-3 above with the new credentials
+4. Beware, if the S3 bottomless backup is enabled, it will pull the data again from Backup. See above how to deactivate.
 
 ## Why Deploy Turso / libSQL Database (JWT Auth) on Railway?
 
