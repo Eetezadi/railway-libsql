@@ -88,3 +88,38 @@ If you need to generate new credentials (e.g., token was compromised or expired)
 6. Follow Steps 3-4 above to configure the new values
 
 **Important:** After rotation, update the `DATABASE_AUTH_TOKEN` in all applications that connect to this database.
+
+## 💾 Bottomless Backup Configuration (Optional)
+
+libSQL supports **bottomless replication**, which automatically backs up your database to S3-compatible storage. This provides point-in-time recovery and protects against data loss.
+
+### What Gets Backed Up?
+
+- **Continuous replication**: Every write to the database is replicated to S3
+- **Point-in-time recovery**: Restore your database to any point in time
+- **Automatic snapshots**: Periodic full snapshots for faster recovery
+- **Transaction log backup**: All database changes are preserved
+
+### Setting Up Bottomless Backup
+
+To enable bottomless backup, you'll need an S3-compatible storage service (AWS S3, Railway Buckets, Cloudflare R2 etc.) and add the following environment variables to your Railway service:
+
+```env
+SQLD_ENABLE_BOTTOMLESS_REPLICATION="true"
+LIBSQL_BOTTOMLESS_BUCKET="your-bucket-name"
+LIBSQL_BOTTOMLESS_ENDPOINT="https://your-s3-endpoint.com"
+LIBSQL_BOTTOMLESS_AWS_ACCESS_KEY_ID="your-access-key-id"
+LIBSQL_BOTTOMLESS_AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+LIBSQL_BOTTOMLESS_AWS_DEFAULT_REGION="auto"
+```
+
+If you're using Railway's bucket, you can use the `Add to Service` and select `Custom`. Then rename the variable as in the example below:
+
+```env
+SQLD_ENABLE_BOTTOMLESS_REPLICATION="true"
+LIBSQL_BOTTOMLESS_BUCKET="${{service.BUCKET}}"
+LIBSQL_BOTTOMLESS_ENDPOINT="${{service.ENDPOINT}}"
+LIBSQL_BOTTOMLESS_AWS_ACCESS_KEY_ID="${{service.ACCESS_KEY_ID}}"
+LIBSQL_BOTTOMLESS_AWS_SECRET_ACCESS_KEY="${{service.SECRET_ACCESS_KEY}}"
+LIBSQL_BOTTOMLESS_AWS_DEFAULT_REGION="${{service.REGION}}"
+```
