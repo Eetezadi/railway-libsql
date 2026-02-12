@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS token-compiler
+FROM golang:1.26-alpine AS token-compiler
 WORKDIR /app
 COPY main.go .
 RUN go mod init token-gen && \
